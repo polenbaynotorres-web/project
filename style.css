@@ -29,12 +29,6 @@
     --ff-body: 'Inter', sans-serif;
 }
 
-button, .btn, .rent-btn, .search-btn, .nav-toggle, .modal-close, .back-to-top,
-.footer-col a, .search-bar select, .search-bar input {
-    pointer-events: none;
-    cursor: default;
-}
-
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
@@ -233,11 +227,6 @@ a { text-decoration: none; color: inherit; }
     outline: 2px solid var(--blue);
     outline-offset: 1px;
     border-color: var(--blue);
-}
-.field select:disabled, .field input:disabled {
-    opacity: 1;
-    background: var(--white);
-    color: var(--ink);
 }
 .search-btn { padding: 11px 22px; }
 

@@ -118,7 +118,7 @@ $testimonials = [
         <form class="search-bar" id="searchForm" action="#fleet" method="get">
             <div class="field">
                 <label for="location">Location</label>
-                <select id="location" name="location" disabled>
+                <select id="location" name="location">
                     <option value="">Select location</option>
                     <option value="dumaguete">Dumaguete City</option>
                     <option value="cebu">Cebu City</option>
@@ -128,21 +128,21 @@ $testimonials = [
             </div>
             <div class="field">
                 <label for="pickupDate">Pick-up Date</label>
-                <input type="date" id="pickupDate" name="pickup_date" disabled>
+                <input type="date" id="pickupDate" name="pickup_date" required>
             </div>
             <div class="field">
                 <label for="pickupTime">Pick-up Time</label>
-                <input type="time" id="pickupTime" name="pickup_time" value="09:00" disabled>
+                <input type="time" id="pickupTime" name="pickup_time" value="09:00" required>
             </div>
             <div class="field">
                 <label for="returnDate">Return Date</label>
-                <input type="date" id="returnDate" name="return_date" disabled>
+                <input type="date" id="returnDate" name="return_date" required>
             </div>
             <div class="field">
                 <label for="returnTime">Return Time</label>
-                <input type="time" id="returnTime" name="return_time" value="09:00" disabled>
+                <input type="time" id="returnTime" name="return_time" value="09:00" required>
             </div>
-            <button type="submit" class="btn btn-primary search-btn" disabled>Search Vehicles</button>
+            <button type="submit" class="btn btn-primary search-btn">Search Vehicles</button>
         </form>
     </div>
 </section>
@@ -335,5 +335,24 @@ $testimonials = [
     </div>
 </footer>
 
+<!-- Reservation modal (front-end only — no server processing yet) -->
+<div class="modal" id="reserveModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="modal-close" id="modalClose" aria-label="Close" type="button">&times;</button>
+        <h3 id="modalTitle">Reserve a Vehicle</h3>
+        <p id="modalCarName">Complete your details and we'll confirm your booking shortly.</p>
+        <form id="reserveForm">
+            <label>Full Name<input type="text" name="name" required></label>
+            <label>Mobile Number<input type="tel" name="phone" required></label>
+            <label>Email<input type="email" name="email" required></label>
+            <button type="submit" class="btn btn-primary btn-block">Confirm Reservation</button>
+        </form>
+        <p class="modal-success" id="modalSuccess" hidden>Thanks! Your reservation request has been received.</p>
+    </div>
+</div>
+
+<button class="back-to-top" id="backToTop" aria-label="Back to top" type="button">&uarr;</button>
+
+<script src="script.js"></script>
 </body>
 </html>
