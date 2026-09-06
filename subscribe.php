@@ -1,12 +1,11 @@
 <?php
 /**
  * subscribe.php — handles newsletter subscription submissions (AJAX
- * POST from script.js). Validates the email, then inserts it into
- * the MySQL `subscribers` table, gracefully handling duplicates via
- * the table's UNIQUE constraint.
+ * POST from script.js). Validation lives in validation.php.
  */
 
 header('Content-Type: application/json');
+require __DIR__ . '/validation.php';
 require __DIR__ . '/config.php'; // provides $pdo
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -17,9 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $email = trim($_POST['email'] ?? '');
 
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+$emailError = validate_email($email);
+if ($emailError !== "") {
     http_response_code(422);
-    echo json_encode(["ok" => false, "error" => "Please enter a valid email address."]);
+    echo json_encode(["ok" => false, "error" => $emailError]);
     exit;
 }
 
@@ -28,7 +28,6 @@ try {
     $stmt->execute([":email" => $email]);
     echo json_encode(["ok" => true, "message" => "Thanks for subscribing!"]);
 } catch (PDOException $e) {
-    // MySQL error code 23000 = integrity constraint violation (duplicate email).
     if ($e->getCode() === '23000') {
         echo json_encode(["ok" => true, "message" => "You're already subscribed!"]);
     } else {

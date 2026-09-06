@@ -90,6 +90,9 @@ $testimonials = [
         </nav>
 
         <div class="header-actions">
+            <div class="auth-area" id="headerAuthArea">
+                <!-- Filled in by script.js depending on login state -->
+            </div>
             <a href="#reserve" class="btn btn-primary">Reserve Now</a>
             <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
                 <span></span><span></span><span></span>
@@ -321,7 +324,7 @@ $testimonials = [
             <h4>Newsletter</h4>
             <p>Subscribe to get the latest updates, exclusive offers, and travel tips.</p>
             <form id="newsletterForm" class="newsletter-form">
-                <input type="email" placeholder="Your email" required aria-label="Email address">
+                <input type="email" name="email" placeholder="Your email" required aria-label="Email address">
                 <button type="submit" class="btn btn-primary">Subscribe</button>
             </form>
             <p class="newsletter-msg" id="newsletterMsg" role="status"></p>
@@ -335,19 +338,53 @@ $testimonials = [
     </div>
 </footer>
 
-<!-- Reservation modal (front-end only — no server processing yet) -->
+<!-- Reservation modal (only reachable when logged in) -->
 <div class="modal" id="reserveModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <button class="modal-close" id="modalClose" aria-label="Close" type="button">&times;</button>
         <h3 id="modalTitle">Reserve a Vehicle</h3>
         <p id="modalCarName">Complete your details and we'll confirm your booking shortly.</p>
         <form id="reserveForm">
-            <label>Full Name<input type="text" name="name" required></label>
-            <label>Mobile Number<input type="tel" name="phone" required></label>
-            <label>Email<input type="email" name="email" required></label>
+            <input type="hidden" name="car" id="reserveCarField" value="">
+            <label>Mobile Number<input type="tel" name="phone" required placeholder="09XX XXX XXXX"></label>
             <button type="submit" class="btn btn-primary btn-block">Confirm Reservation</button>
         </form>
+        <p class="modal-error" id="modalError" hidden></p>
         <p class="modal-success" id="modalSuccess" hidden>Thanks! Your reservation request has been received.</p>
+    </div>
+</div>
+
+<!-- Login modal -->
+<div class="modal" id="loginModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+        <button class="modal-close" id="loginModalClose" aria-label="Close" type="button">&times;</button>
+        <h3 id="loginModalTitle">Log In</h3>
+        <p id="loginModalMsg">Log in to book a vehicle.</p>
+        <form id="loginForm">
+            <label>Email<input type="email" name="email" required></label>
+            <label>Password<input type="password" name="password" required></label>
+            <button type="submit" class="btn btn-primary btn-block">Log In</button>
+        </form>
+        <p class="modal-error" id="loginError" hidden></p>
+        <p class="modal-switch">Don't have an account? <a href="#" id="switchToRegister">Register</a></p>
+    </div>
+</div>
+
+<!-- Register modal -->
+<div class="modal" id="registerModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="registerModalTitle">
+        <button class="modal-close" id="registerModalClose" aria-label="Close" type="button">&times;</button>
+        <h3 id="registerModalTitle">Create an Account</h3>
+        <p>Register to book vehicles with us.</p>
+        <form id="registerForm">
+            <label>Full Name<input type="text" name="name" required></label>
+            <label>Email<input type="email" name="email" required></label>
+            <label>Password<input type="password" name="password" required minlength="8"></label>
+            <label>Confirm Password<input type="password" name="confirm" required minlength="8"></label>
+            <button type="submit" class="btn btn-primary btn-block">Register</button>
+        </form>
+        <p class="modal-error" id="registerError" hidden></p>
+        <p class="modal-switch">Already have an account? <a href="#" id="switchToLogin">Log In</a></p>
     </div>
 </div>
 

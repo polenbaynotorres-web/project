@@ -480,6 +480,25 @@ a { text-decoration: none; color: inherit; }
 }
 .modal input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
 .modal-success { color: #1E9E5A; font-weight: 600; margin-top: 14px; }
+.modal-error { color: #E4574C; font-weight: 600; margin-top: 14px; font-size: 0.88rem; }
+.modal-switch { text-align: center; font-size: 0.85rem; color: var(--ink-soft); margin-top: 16px; }
+.modal-switch a { color: var(--blue); font-weight: 600; }
+
+/* ================= AUTH AREA (header) ================= */
+.auth-area { display: flex; align-items: center; gap: 10px; }
+.auth-area .btn-sm { padding: 9px 18px; font-size: 0.86rem; }
+.auth-area .btn-outline-navy {
+    background: transparent;
+    color: var(--navy);
+    border: 2px solid var(--border);
+}
+.auth-area .btn-outline-navy:hover { border-color: var(--navy); }
+.user-greeting {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--navy);
+    white-space: nowrap;
+}
 
 /* ================= BACK TO TOP ================= */
 .back-to-top {

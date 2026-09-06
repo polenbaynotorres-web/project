@@ -1,13 +1,15 @@
 <?php
 /**
- * reserve.php — handles reservation form submissions (AJAX POST
- * from script.js). Validates input server-side, then inserts the
- * reservation into the MySQL `reservations` table via a prepared
- * statement. Responds with JSON so script.js can show a real
- * success/error state instead of a fake one.
+ * reserve.php — handles reservation form submissions (AJAX POST from
+ * script.js). Requires the customer to be logged in — name/email come
+ * from the session (set by login.php/register.php), not the form, so
+ * they can't be spoofed. Only phone number and car come from the form.
+ * Validation rules live in validation.php.
  */
 
 header('Content-Type: application/json');
+session_start();
+require __DIR__ . '/validation.php';
 require __DIR__ . '/config.php'; // provides $pdo
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -16,22 +18,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$name  = trim($_POST['name']  ?? '');
-$phone = trim($_POST['phone'] ?? '');
-$email = trim($_POST['email'] ?? '');
-$car   = trim($_POST['car']   ?? '');
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(["ok" => false, "error" => "Please log in to reserve a vehicle.", "requiresLogin" => true]);
+    exit;
+}
 
-// Basic server-side validation — never trust the client alone.
+$userId = (int)$_SESSION['user_id'];
+$name   = $_SESSION['name'];
+$email  = $_SESSION['email'];
+$phone  = trim($_POST['phone'] ?? '');
+$car    = trim($_POST['car']   ?? '');
+
 $errors = [];
-if ($name === '') {
-    $errors[] = "Full name is required.";
-}
-if ($phone === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $phone)) {
-    $errors[] = "Please enter a valid mobile number.";
-}
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $errors[] = "Please enter a valid email address.";
-}
+$phoneError = validate_phone($phone);
+if ($phoneError !== "") $errors[] = $phoneError;
 
 if (!empty($errors)) {
     http_response_code(422);
@@ -41,13 +42,14 @@ if (!empty($errors)) {
 
 try {
     $stmt = $pdo->prepare(
-        "INSERT INTO reservations (name, phone, email, car) VALUES (:name, :phone, :email, :car)"
+        "INSERT INTO reservations (user_id, name, phone, email, car) VALUES (:user_id, :name, :phone, :email, :car)"
     );
     $stmt->execute([
-        ":name"  => $name,
-        ":phone" => $phone,
-        ":email" => $email,
-        ":car"   => $car !== '' ? $car : "Not specified",
+        ":user_id" => $userId,
+        ":name"    => $name,
+        ":phone"   => $phone,
+        ":email"   => $email,
+        ":car"     => $car !== '' ? $car : "Not specified",
     ]);
 
     echo json_encode([
