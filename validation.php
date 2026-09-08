@@ -58,3 +58,53 @@ function validate_phone($phone) {
     }
     return "";
 }
+
+/** $allowed is an associative array of valid keys (e.g. the $locations map from data.php). */
+function validate_location($location, $allowed) {
+    if (trim($location) === '') {
+        return "Please select a pick-up/return location.";
+    }
+    if (!array_key_exists($location, $allowed)) {
+        return "Please select a valid location.";
+    }
+    return "";
+}
+
+function validate_date($date, $label = "date") {
+    if (trim($date) === '') {
+        return ucfirst($label) . " is required.";
+    }
+    $parsed = DateTime::createFromFormat('Y-m-d', $date);
+    if (!$parsed || $parsed->format('Y-m-d') !== $date) {
+        return "Please enter a valid " . $label . ".";
+    }
+    return "";
+}
+
+function validate_time($time, $label = "time") {
+    if (trim($time) === '') {
+        return ucfirst($label) . " is required.";
+    }
+    $parsed = DateTime::createFromFormat('H:i', $time);
+    if (!$parsed || $parsed->format('H:i') !== $time) {
+        return "Please enter a valid " . $label . ".";
+    }
+    return "";
+}
+
+/**
+ * Confirms the return date/time comes after the pick-up date/time.
+ * Only call this once the individual date/time fields have already
+ * passed validate_date()/validate_time().
+ */
+function validate_date_order($pickupDate, $pickupTime, $returnDate, $returnTime) {
+    $pickup = DateTime::createFromFormat('Y-m-d H:i', "$pickupDate $pickupTime");
+    $return = DateTime::createFromFormat('Y-m-d H:i', "$returnDate $returnTime");
+    if (!$pickup || !$return) {
+        return "";
+    }
+    if ($return <= $pickup) {
+        return "Return date/time must be after the pick-up date/time.";
+    }
+    return "";
+}

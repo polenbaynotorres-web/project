@@ -7,7 +7,7 @@
  */
 
 header('Content-Type: application/json');
-session_start();
+require __DIR__ . '/session_init.php';
 
 if (isset($_SESSION['user_id'])) {
     echo json_encode([

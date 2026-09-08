@@ -116,13 +116,27 @@ a { text-decoration: none; color: inherit; }
 }
 .logo-img { height: 44px; width: auto; object-fit: contain; }
 .logo-icon-img { height: 34px; width: auto; object-fit: contain; }
-.main-nav { display: flex; gap: 30px; }
-.main-nav span {
+.main-nav { display: flex; gap: 22px; }
+.main-nav a {
     font-weight: 500;
     font-size: 0.94rem;
     color: var(--navy);
     padding: 4px 0;
+    position: relative;
 }
+.main-nav a::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -3px;
+    height: 2px;
+    background: var(--blue);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s ease;
+}
+.main-nav a:hover::after { transform: scaleX(1); }
+.main-nav a.active { color: var(--blue); }
+.main-nav a.active::after { transform: scaleX(1); }
 
 .header-actions { display: flex; align-items: center; gap: 14px; }
 .header-actions .btn-primary { padding: 10px 22px; font-size: 0.9rem; }
@@ -266,6 +280,17 @@ a { text-decoration: none; color: inherit; }
     object-fit: contain;
     padding: 14px;
 }
+/* Placeholder look for cars without a real photo yet — swap in an
+   actual <img> and these classes stop being used automatically. */
+.car-photo.car-sedan     { background: linear-gradient(135deg, #FDEDEC, #F8C9C4); }
+.car-photo.car-mpv       { background: linear-gradient(135deg, #EEF2F6, #D6DEE8); }
+.car-photo.car-suv       { background: linear-gradient(135deg, #E7ECEF, #C7D0DA); }
+.car-photo.car-van       { background: linear-gradient(135deg, #EAF1FE, #C9DBFB); }
+.car-photo.car-hatchback { background: linear-gradient(135deg, #FEF3E2, #FBD9A5); }
+.car-photo.car-pickup    { background: linear-gradient(135deg, #EFEAE3, #D8CDBE); }
+.car-photo.car-bus       { background: linear-gradient(135deg, #F3EAFE, #D9C2FB); }
+.car-silhouette { width: 100%; max-width: 150px; fill: var(--navy); opacity: 0.85; }
+.car-silhouette .wheel { fill: var(--ink); }
 .car-body { padding: 18px 20px 22px; }
 .car-body h3 { font-size: 1.08rem; margin-bottom: 8px; }
 .car-seats {
@@ -404,10 +429,115 @@ a { text-decoration: none; color: inherit; }
 .contact-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; }
 .contact-list li { display: flex; gap: 14px; align-items: flex-start; }
 .contact-list svg { color: var(--blue); flex-shrink: 0; margin-top: 2px; }
-.contact-list .label { display: block; font-size: 0.78rem; color: #9FB6DA; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
-.contact-list li div span:last-child { color: var(--white); font-size: 0.94rem; }
+/* Light label/value colors — only readable on the dark navy background
+   used by the homepage "Find Torres Near You" teaser (.find-us). The
+   contact page's own card has a white background and needs its own
+   dark colors — see ".contact-info-card .contact-list" below. */
+.find-us .contact-list .label { display: block; font-size: 0.78rem; color: #9FB6DA; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+.find-us .contact-list li div span:last-child { color: var(--white); font-size: 0.94rem; }
 .find-us-map { min-height: 340px; }
 .find-us-map iframe { width: 100%; height: 100%; min-height: 340px; border: 0; display: block; }
+
+/* ================= PAGE BANNER (inner pages) ================= */
+.page-banner {
+    background: linear-gradient(120deg, var(--navy) 0%, var(--navy-2) 60%, #2B5695 100%);
+    padding: 64px 0 56px;
+    text-align: center;
+}
+.page-banner h1 { color: var(--white); font-size: clamp(1.8rem, 3.6vw, 2.6rem); margin-bottom: 10px; }
+.page-banner p { color: #DCE6F5; max-width: 560px; margin: 0 auto; }
+
+/* ================= CONTACT PAGE ================= */
+.contact-page { padding: 64px 0 0; background: var(--white); }
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 32px;
+    align-items: start;
+    padding-bottom: 64px;
+}
+.contact-form-card, .contact-info-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 32px;
+}
+.contact-form-card h2, .contact-info-card h2 { font-size: 1.25rem; margin-bottom: 6px; }
+.auth-card-sub { font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 18px; }
+.contact-form-card form { display: flex; flex-direction: column; gap: 14px; }
+.contact-form-card label {
+    font-size: 0.82rem; font-weight: 600; color: var(--ink);
+    display: flex; flex-direction: column; gap: 6px;
+}
+.contact-form-card input, .contact-form-card textarea {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: var(--ff-body);
+    font-size: 0.92rem;
+    resize: vertical;
+}
+.contact-form-card input:focus, .contact-form-card textarea:focus {
+    outline: 2px solid var(--blue); outline-offset: 1px;
+}
+.contact-info-card .contact-list { margin-top: 4px; }
+.contact-info-card .contact-list .label { display: block; font-size: 0.78rem; color: var(--blue); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; font-weight: 600; }
+.contact-info-card .contact-list li div span:last-child { color: var(--ink); font-size: 0.94rem; }
+.contact-map { min-height: 320px; }
+.contact-map iframe { min-height: 320px; }
+
+/* ================= ADMIN DASHBOARD ================= */
+.admin-stock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+}
+.admin-car-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+}
+.admin-car-card h3 { font-size: 1rem; margin-bottom: 12px; }
+.admin-color-list { display: flex; flex-direction: column; gap: 8px; }
+.admin-color-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--ink);
+    cursor: pointer;
+}
+.admin-color-toggle input { width: 16px; height: 16px; accent-color: var(--blue); }
+
+/* ================= CAR STOCK / COLOR DISPLAY (fleet cards) ================= */
+.car-colors {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+}
+.car-colors strong { color: var(--ink); font-weight: 600; }
+.out-of-stock-badge {
+    display: inline-block;
+    background: #FDECEA;
+    color: #C0392B;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+}
+.car-card.out-of-stock .car-photo { opacity: 0.55; filter: grayscale(40%); }
+.car-card.out-of-stock .rent-btn { background: var(--border); color: var(--ink-soft); cursor: not-allowed; }
+
+@media (max-width: 860px) {
+    .contact-grid { grid-template-columns: 1fr; }
+}
+
 
 /* ================= FOOTER ================= */
 .site-footer { background: var(--white); color: var(--ink-soft); border-top: 1px solid var(--border); }
@@ -471,17 +601,85 @@ a { text-decoration: none; color: inherit; }
 .modal p { font-size: 0.9rem; }
 .modal form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
 .modal label { font-size: 0.82rem; font-weight: 600; color: var(--ink); display: flex; flex-direction: column; gap: 6px; }
-.modal input {
+.modal input, .modal select {
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 12px;
     font-family: var(--ff-body);
     font-size: 0.92rem;
+    background: var(--white);
+    color: var(--ink);
 }
-.modal input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.modal input:focus, .modal select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
 .modal-success { color: #1E9E5A; font-weight: 600; margin-top: 14px; }
 .modal-error { color: #E4574C; font-weight: 600; margin-top: 14px; font-size: 0.88rem; }
 .modal-switch { text-align: center; font-size: 0.85rem; color: var(--ink-soft); margin-top: 16px; }
+.modal-card-wide { max-width: 460px; }
+.modal-row { display: flex; gap: 12px; }
+.modal-row .field-half { flex: 1; min-width: 0; }
+
+/* ================= MY RESERVATIONS PAGE ================= */
+.reservations-list { display: flex; flex-direction: column; gap: 16px; max-width: 720px; margin: 0 auto; }
+.reservation-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 22px 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.reservation-card.cancelled { opacity: 0.65; }
+.reservation-main h3 { font-size: 1.05rem; margin-bottom: 8px; }
+.reservation-main p { margin: 0 0 4px; font-size: 0.88rem; }
+.reservation-main p strong { color: var(--ink); font-weight: 600; }
+.reservation-meta { color: var(--ink-soft); font-size: 0.78rem !important; margin-top: 6px !important; }
+.reservation-status { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.reservation-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+.reservation-badge.status-confirmed { background: #E7F7EE; color: #1E9E5A; }
+.reservation-badge.status-cancelled { background: #FDECEA; color: #C0392B; }
+
+/* ================= PASSWORD REQUIREMENTS CHECKLIST ================= */
+.password-requirements {
+    list-style: none;
+    margin: -6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.password-requirements li {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    padding-left: 20px;
+    position: relative;
+}
+.password-requirements li::before {
+    content: "\2715"; /* ✕ */
+    position: absolute;
+    left: 0;
+    color: #C9524A;
+    font-weight: 700;
+    font-size: 0.72rem;
+}
+.password-requirements li.met {
+    color: #1E9E5A;
+}
+.password-requirements li.met::before {
+    content: "\2713"; /* ✓ */
+    color: #1E9E5A;
+}
 .modal-switch a { color: var(--blue); font-weight: 600; }
 
 /* ================= AUTH AREA (header) ================= */

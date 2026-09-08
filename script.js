@@ -1,426 +1,452 @@
-document.addEventListener("DOMContentLoaded", () => {
+/**
+ * script.js — shared front-end behavior for every page (included by
+ * footer.php). Talks to the PHP AJAX endpoints (session.php, login.php,
+ * register.php, logout.php, reserve.php, contact_function.php,
+ * subscribe.php) and keeps the header auth area / modals in sync.
+ */
 
-  /* ---------- Mobile nav toggle ---------- */
-  const header = document.getElementById("siteHeader");
-  const navToggle = document.getElementById("navToggle");
-  if (navToggle && header) {
-    navToggle.addEventListener("click", () => {
-      const isOpen = header.classList.toggle("nav-open");
-      navToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    });
-  }
+let currentUser = null;      // { name, email } or null
+let pendingReserveCar = null; // car name the visitor tried to rent before logging in
 
-  /* ---------- Search bar: keep return date >= pickup date ---------- */
-  const pickupDate = document.getElementById("pickupDate");
-  const returnDate = document.getElementById("returnDate");
-  const todayISO = new Date().toISOString().split("T")[0];
-  if (pickupDate) pickupDate.min = todayISO;
-  if (returnDate) returnDate.min = todayISO;
+// ===================== Element refs (not every page has every one) =====================
+const headerAuthArea = document.getElementById("headerAuthArea");
+const siteHeader = document.getElementById("siteHeader");
+const navToggle = document.getElementById("navToggle");
+const mainNav = document.getElementById("mainNav");
+const backToTop = document.getElementById("backToTop");
 
-  if (pickupDate && returnDate) {
-    pickupDate.addEventListener("change", () => {
-      returnDate.min = pickupDate.value || todayISO;
-      if (returnDate.value && returnDate.value < returnDate.min) {
-        returnDate.value = returnDate.min;
-      }
-    });
-  }
+const loginModal = document.getElementById("loginModal");
+const registerModal = document.getElementById("registerModal");
+const reserveModal = document.getElementById("reserveModal");
 
-  const searchForm = document.getElementById("searchForm");
-  if (searchForm) {
-    searchForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      document.getElementById("fleet").scrollIntoView({ behavior: "smooth" });
-    });
-  }
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const reserveForm = document.getElementById("reserveForm");
+const contactForm = document.getElementById("contactForm");
+const newsletterForm = document.getElementById("newsletterForm");
 
-  /* ---------- Auth state (login/register/logout) ---------- */
-  const headerAuthArea = document.getElementById("headerAuthArea");
-  let currentUser = null; // null = logged out, otherwise {name, email}
-
-  function escapeHtml(str) {
+// ===================== Utilities =====================
+function escapeHtml(str) {
     const div = document.createElement("div");
-    div.textContent = str;
+    div.textContent = str ?? "";
     return div.innerHTML;
-  }
+}
 
-  function renderAuthArea() {
-    if (!headerAuthArea) return;
-    if (currentUser) {
-      headerAuthArea.innerHTML = `
-        <span class="user-greeting">Hi, ${escapeHtml(currentUser.name.split(" ")[0])}</span>
-        <button type="button" class="btn btn-outline-navy btn-sm" id="logoutBtn">Log Out</button>
-      `;
-      document.getElementById("logoutBtn").addEventListener("click", handleLogout);
-    } else {
-      headerAuthArea.innerHTML = `
-        <button type="button" class="btn btn-outline-navy btn-sm" id="loginTrigger">Log In</button>
-        <button type="button" class="btn btn-primary btn-sm" id="registerTrigger">Register</button>
-      `;
-      document.getElementById("loginTrigger").addEventListener("click", () => openAuthModal("login"));
-      document.getElementById("registerTrigger").addEventListener("click", () => openAuthModal("register"));
-    }
-  }
+function setMessage(el, text, hidden) {
+    if (!el) return;
+    el.textContent = text || "";
+    el.hidden = hidden === undefined ? !text : hidden;
+}
 
-  async function checkSession() {
+async function postForm(url, formData) {
     try {
-      const response = await fetch("session_check.php");
-      const result = await response.json();
-      currentUser = result.loggedIn ? result.user : null;
+        const res = await fetch(url, {
+            method: "POST",
+            body: formData,
+            credentials: "same-origin",
+        });
+        return await res.json();
     } catch (err) {
-      currentUser = null;
+        return { ok: false, error: "Something went wrong. Please try again." };
+    }
+}
+
+// ===================== Modals =====================
+function openModal(modal) {
+    if (!modal) return;
+    closeAllModals();
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+}
+
+function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+}
+
+function closeAllModals() {
+    [loginModal, registerModal, reserveModal].forEach(closeModal);
+}
+
+function openAuthModal(mode) {
+    if (mode === "register") {
+        openModal(registerModal);
+    } else {
+        openModal(loginModal);
+    }
+}
+
+// Close on backdrop click or any .modal-close button.
+document.querySelectorAll(".modal").forEach((modal) => {
+    modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal(modal);
+    });
+});
+document.querySelectorAll(".modal-close").forEach((btn) => {
+    btn.addEventListener("click", () => closeModal(btn.closest(".modal")));
+});
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAllModals();
+});
+
+const switchToRegister = document.getElementById("switchToRegister");
+if (switchToRegister) {
+    switchToRegister.addEventListener("click", (e) => {
+        e.preventDefault();
+        openAuthModal("register");
+    });
+}
+
+const switchToLogin = document.getElementById("switchToLogin");
+if (switchToLogin) {
+    switchToLogin.addEventListener("click", (e) => {
+        e.preventDefault();
+        openAuthModal("login");
+    });
+}
+
+// ===================== Auth area (header) =====================
+function renderAuthArea() {
+    if (!headerAuthArea) return;
+
+    if (currentUser) {
+        headerAuthArea.innerHTML = `
+      <span class="user-greeting">
+        Hi, ${escapeHtml(currentUser.name.split(" ")[0])}
+      </span>
+      <button
+        type="button"
+        class="btn btn-outline-navy btn-sm"
+        id="logoutBtn">
+        Log Out
+      </button>
+    `;
+
+        document
+            .getElementById("logoutBtn")
+            .addEventListener("click", handleLogout);
+    } else {
+        headerAuthArea.innerHTML = `
+      <button
+        type="button"
+        class="btn btn-outline-navy btn-sm"
+        id="loginTrigger">
+        Log In
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-primary btn-sm"
+        id="registerTrigger">
+        Register
+      </button>
+    `;
+
+        document
+            .getElementById("loginTrigger")
+            .addEventListener("click", () => openAuthModal("login"));
+
+        document
+            .getElementById("registerTrigger")
+            .addEventListener("click", () => openAuthModal("register"));
+    }
+}
+
+// Ask the server whether we're logged in (session cookie), then draw the
+// header accordingly. Runs once on every page load.
+async function checkSession() {
+    try {
+        const res = await fetch("session.php", { credentials: "same-origin" });
+        const data = await res.json();
+        currentUser = data.ok && data.loggedIn ? data.user : null;
+    } catch (err) {
+        currentUser = null;
     }
     renderAuthArea();
-  }
+}
 
-  async function handleLogout() {
-    try {
-      await fetch("logout.php", { method: "POST" });
-    } catch (err) {
-      // Treat as logged out locally even if the request itself failed.
-    }
+async function handleLogout() {
+    const confirmed = window.confirm("Are you sure you want to log out?");
+    if (!confirmed) return;
+
+    await postForm("logout.php", new FormData());
     currentUser = null;
     renderAuthArea();
-  }
+}
 
-  /* ---------- Login / Register modals ---------- */
-  const loginModal = document.getElementById("loginModal");
-  const loginModalClose = document.getElementById("loginModalClose");
-  const loginForm = document.getElementById("loginForm");
-  const loginError = document.getElementById("loginError");
-  const loginModalMsg = document.getElementById("loginModalMsg");
-
-  const registerModal = document.getElementById("registerModal");
-  const registerModalClose = document.getElementById("registerModalClose");
-  const registerForm = document.getElementById("registerForm");
-  const registerError = document.getElementById("registerError");
-
-  // What to do once login/register succeeds — "Rent Now" sets this
-  // to reopen the reservation modal afterward.
-  let afterAuthAction = null;
-
-  function openModalEl(el) {
-    if (!el) return;
-    el.classList.add("open");
-    el.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
-  }
-  function closeModalEl(el) {
-    if (!el) return;
-    el.classList.remove("open");
-    el.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
-  }
-  function closeAllModals() {
-    [reserveModal, loginModal, registerModal].forEach(closeModalEl);
-  }
-
-  function openAuthModal(which, message) {
-    closeAllModals();
-    if (which === "login") {
-      loginError.hidden = true;
-      loginModalMsg.textContent = message || "Log in to book a vehicle.";
-      loginForm.reset();
-      openModalEl(loginModal);
-    } else {
-      registerError.hidden = true;
-      registerForm.reset();
-      openModalEl(registerModal);
-    }
-  }
-
-  if (loginModalClose) loginModalClose.addEventListener("click", () => closeModalEl(loginModal));
-  if (registerModalClose) registerModalClose.addEventListener("click", () => closeModalEl(registerModal));
-
-  const switchToRegister = document.getElementById("switchToRegister");
-  const switchToLogin = document.getElementById("switchToLogin");
-  if (switchToRegister) {
-    switchToRegister.addEventListener("click", (e) => { e.preventDefault(); openAuthModal("register"); });
-  }
-  if (switchToLogin) {
-    switchToLogin.addEventListener("click", (e) => { e.preventDefault(); openAuthModal("login"); });
-  }
-
-  [loginModal, registerModal].forEach(m => {
-    if (!m) return;
-    m.addEventListener("click", (e) => { if (e.target === m) closeModalEl(m); });
-  });
-
-  if (loginForm) {
+// ===================== Login / Register forms =====================
+if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      loginError.hidden = true;
-      const submitBtn = loginForm.querySelector('button[type="submit"]');
-      const originalLabel = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Logging in...";
+        e.preventDefault();
+        setMessage(document.getElementById("loginError"), "");
 
-      try {
-        const formData = new FormData(loginForm);
-        const response = await fetch("login.php", { method: "POST", body: formData });
-        const result = await response.json();
+        const data = await postForm("login.php", new FormData(loginForm));
 
-        if (result.ok) {
-          currentUser = result.user;
-          renderAuthArea();
-          closeModalEl(loginModal);
-          if (afterAuthAction) { afterAuthAction(); afterAuthAction = null; }
+        if (data.ok) {
+            currentUser = data.user;
+            renderAuthArea();
+            loginForm.reset();
+            closeModal(loginModal);
+
+            if (pendingReserveCar) {
+                const car = pendingReserveCar;
+                pendingReserveCar = null;
+                openReserveModal(car);
+            }
         } else {
-          loginError.textContent = result.error || "Could not log in. Please try again.";
-          loginError.hidden = false;
+            setMessage(document.getElementById("loginError"), data.error || "Could not log in.");
         }
-      } catch (err) {
-        loginError.textContent = "Could not reach the server. Please try again.";
-        loginError.hidden = false;
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalLabel;
-      }
     });
-  }
+}
 
-  if (registerForm) {
+if (registerForm) {
     registerForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      registerError.hidden = true;
-      const submitBtn = registerForm.querySelector('button[type="submit"]');
-      const originalLabel = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Creating account...";
+        e.preventDefault();
+        setMessage(document.getElementById("registerError"), "");
 
-      try {
-        const formData = new FormData(registerForm);
-        const response = await fetch("register.php", { method: "POST", body: formData });
-        const result = await response.json();
+        const data = await postForm("register.php", new FormData(registerForm));
 
-        if (result.ok) {
-          currentUser = result.user;
-          renderAuthArea();
-          closeModalEl(registerModal);
-          if (afterAuthAction) { afterAuthAction(); afterAuthAction = null; }
+        if (data.ok) {
+            currentUser = data.user;
+            renderAuthArea();
+            registerForm.reset();
+            closeModal(registerModal);
+
+            if (pendingReserveCar) {
+                const car = pendingReserveCar;
+                pendingReserveCar = null;
+                openReserveModal(car);
+            }
         } else {
-          registerError.textContent = result.error || "Could not create your account. Please try again.";
-          registerError.hidden = false;
+            setMessage(document.getElementById("registerError"), data.error || "Could not create your account.");
         }
-      } catch (err) {
-        registerError.textContent = "Could not reach the server. Please try again.";
-        registerError.hidden = false;
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalLabel;
-      }
     });
-  }
+}
 
-  /* ---------- Reservation modal — connected to reserve.php, requires login ---------- */
-  const reserveModal = document.getElementById("reserveModal");
-  const modalClose = document.getElementById("modalClose");
-  const modalCarName = document.getElementById("modalCarName");
-  const reserveForm = document.getElementById("reserveForm");
-  const reserveCarField = document.getElementById("reserveCarField");
-  const modalSuccess = document.getElementById("modalSuccess");
-  const modalError = document.getElementById("modalError");
+// ===================== Reserve modal =====================
+function todayIso() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
-  function openModal(carName) {
+// Fills the reservation modal's color dropdown with the colors that
+// are actually in stock for the chosen car (window.CAR_COLORS is
+// rendered server-side in footer.php from the same stock data the
+// fleet page uses).
+function populateColorOptions(car) {
+    const colorField = document.getElementById("reserveColor");
+    if (!colorField) return;
+
+    colorField.innerHTML = '<option value="">Select color</option>';
+    const colors = (window.CAR_COLORS && window.CAR_COLORS[car]) || [];
+    colors.forEach((color) => {
+        const opt = document.createElement("option");
+        opt.value = color;
+        opt.textContent = color;
+        colorField.appendChild(opt);
+    });
+}
+
+function openReserveModal(car) {
     if (!reserveModal) return;
 
-    // Must be logged in to reserve — prompt login instead, and
-    // reopen the reservation modal automatically once signed in.
-    if (!currentUser) {
-      afterAuthAction = () => openModal(carName);
-      openAuthModal("login", "Please log in to reserve a vehicle.");
-      return;
+    const carField = document.getElementById("reserveCarField");
+    const carNameEl = document.getElementById("modalCarName");
+    const titleEl = document.getElementById("modalTitle");
+    const successEl = document.getElementById("modalSuccess");
+    const errorEl = document.getElementById("modalError");
+    const pickupDateField = document.getElementById("reservePickupDate");
+    const returnDateField = document.getElementById("reserveReturnDate");
+
+    if (titleEl) titleEl.textContent = car ? `Reserve the ${car}` : "Reserve a Vehicle";
+    if (carNameEl) {
+        carNameEl.textContent = car
+            ? `Complete your details and we'll confirm your ${car} booking shortly.`
+            : "Complete your details and we'll confirm your booking shortly.";
+    }
+    setMessage(errorEl, "");
+    if (successEl) successEl.hidden = true;
+    if (reserveForm) {
+        reserveForm.reset();
+        reserveForm.hidden = false;
+    }
+    if (carField) carField.value = car || "";
+    populateColorOptions(car || "");
+
+    // Never let someone pick a pick-up/return date in the past.
+    const today = todayIso();
+    if (pickupDateField) {
+        pickupDateField.min = today;
+        pickupDateField.value = today;
+    }
+    if (returnDateField) {
+        returnDateField.min = today;
+        returnDateField.value = today;
     }
 
-    closeAllModals();
-    modalCarName.textContent = carName
-      ? `Reserving: ${carName}. Confirm your mobile number below.`
-      : "Confirm your mobile number below and we'll get in touch.";
-    if (reserveCarField) reserveCarField.value = carName || "";
-    reserveForm.hidden = false;
-    modalSuccess.hidden = true;
-    modalError.hidden = true;
-    reserveForm.reset();
-    if (reserveCarField) reserveCarField.value = carName || "";
-    openModalEl(reserveModal);
-  }
+    openModal(reserveModal);
+}
 
-  function closeModal() {
-    closeModalEl(reserveModal);
-  }
-
-  document.querySelectorAll(".rent-btn").forEach(btn => {
-    btn.addEventListener("click", () => openModal(btn.dataset.car));
-  });
-
-  const reserveTopLinks = document.querySelectorAll('a[href="#reserve"]');
-  reserveTopLinks.forEach(link => {
-    link.addEventListener("click", (e) => {
-      e.preventDefault();
-      openModal("");
-    });
-  });
-
-  if (modalClose) modalClose.addEventListener("click", closeModal);
-  if (reserveModal) {
-    reserveModal.addEventListener("click", (e) => {
-      if (e.target === reserveModal) closeModal();
-    });
-  }
-  document.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape") return;
-    [reserveModal, loginModal, registerModal].forEach(m => {
-      if (m && m.classList.contains("open")) closeModalEl(m);
-    });
-  });
-
-  if (reserveForm) {
-    reserveForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      modalError.hidden = true;
-
-      const submitBtn = reserveForm.querySelector('button[type="submit"]');
-      const originalLabel = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Sending...";
-
-      try {
-        const formData = new FormData(reserveForm);
-        const response = await fetch("reserve.php", {
-          method: "POST",
-          body: formData,
-        });
-        const result = await response.json();
-
-        if (result.ok) {
-          reserveForm.hidden = true;
-          modalSuccess.textContent = result.message || "Thanks! Your reservation request has been received.";
-          modalSuccess.hidden = false;
-          setTimeout(closeModal, 2200);
-        } else if (result.requiresLogin) {
-          // Session must have expired mid-form.
-          const carName = reserveCarField ? reserveCarField.value : "";
-          currentUser = null;
-          renderAuthArea();
-          closeModal();
-          afterAuthAction = () => openModal(carName);
-          openAuthModal("login", "Your session expired — please log in again to finish reserving.");
-        } else {
-          modalError.textContent = result.error || "Something went wrong. Please try again.";
-          modalError.hidden = false;
+// Keep the return date from ever being set before the (possibly updated)
+// pick-up date.
+const reservePickupDateEl = document.getElementById("reservePickupDate");
+const reserveReturnDateEl = document.getElementById("reserveReturnDate");
+if (reservePickupDateEl && reserveReturnDateEl) {
+    reservePickupDateEl.addEventListener("change", () => {
+        reserveReturnDateEl.min = reservePickupDateEl.value || todayIso();
+        if (reserveReturnDateEl.value && reserveReturnDateEl.value < reserveReturnDateEl.min) {
+            reserveReturnDateEl.value = reserveReturnDateEl.min;
         }
-      } catch (err) {
-        modalError.textContent = "Could not reach the server. Please check your connection and try again.";
-        modalError.hidden = false;
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalLabel;
-      }
     });
-  }
+}
 
-  /* ---------- Testimonials: simple auto-rotate dots (mobile-friendly) ---------- */
-  const track = document.getElementById("reviewsTrack");
-  const dotsWrap = document.getElementById("reviewDots");
-  if (track && dotsWrap) {
-    const cards = Array.from(track.children);
-    cards.forEach((_, i) => {
-      const dot = document.createElement("button");
-      dot.setAttribute("aria-label", `Show review ${i + 1}`);
-      if (i === 0) dot.classList.add("active");
-      dot.addEventListener("click", () => showReview(i));
-      dotsWrap.appendChild(dot);
-    });
-
-    function showReview(index) {
-      const isMobileLayout = window.matchMedia("(max-width: 720px)").matches;
-      if (!isMobileLayout) return;
-      cards.forEach((card, i) => { card.style.display = i === index ? "block" : "none"; });
-      Array.from(dotsWrap.children).forEach((d, i) => d.classList.toggle("active", i === index));
-    }
-
-    function applyLayout() {
-      const isMobileLayout = window.matchMedia("(max-width: 720px)").matches;
-      dotsWrap.style.display = isMobileLayout ? "flex" : "none";
-      if (isMobileLayout) {
-        showReview(0);
-      } else {
-        cards.forEach(card => { card.style.display = ""; });
-      }
-    }
-    applyLayout();
-    window.addEventListener("resize", applyLayout);
-  }
-
-  /* ---------- Newsletter form — now connected to subscribe.php ---------- */
-  const newsletterForm = document.getElementById("newsletterForm");
-  const newsletterMsg = document.getElementById("newsletterMsg");
-  if (newsletterForm) {
-    newsletterForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      newsletterMsg.style.color = "";
-      newsletterMsg.textContent = "";
-
-      const submitBtn = newsletterForm.querySelector('button[type="submit"]');
-      const originalLabel = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = "...";
-
-      try {
-        const formData = new FormData(newsletterForm);
-        const response = await fetch("subscribe.php", {
-          method: "POST",
-          body: formData,
-        });
-        const result = await response.json();
-
-        if (result.ok) {
-          newsletterMsg.textContent = result.message || "Thanks for subscribing!";
-          newsletterForm.reset();
-        } else {
-          newsletterMsg.style.color = "#E4574C";
-          newsletterMsg.textContent = result.error || "Something went wrong. Please try again.";
+document.querySelectorAll(".rent-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const car = btn.dataset.car || "";
+        if (!currentUser) {
+            pendingReserveCar = car;
+            const msg = document.getElementById("loginModalMsg");
+            if (msg) msg.textContent = `Log in to reserve the ${car}.`;
+            openAuthModal("login");
+            return;
         }
-      } catch (err) {
-        newsletterMsg.style.color = "#E4574C";
-        newsletterMsg.textContent = "Could not reach the server. Please try again.";
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalLabel;
-      }
+        openReserveModal(car);
     });
-  }
-
-  /* ---------- Back to top ---------- */
-  const backToTop = document.getElementById("backToTop");
-  if (backToTop) {
-    window.addEventListener("scroll", () => {
-      backToTop.classList.toggle("visible", window.scrollY > 500);
-    });
-    backToTop.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  }
-
-  /* ---------- Reveal-on-scroll for section headers/cards ---------- */
-  const revealTargets = document.querySelectorAll(".car-card, .feature, .step, .review-card");
-  if ("IntersectionObserver" in window) {
-    revealTargets.forEach(el => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(16px)";
-      el.style.transition = "opacity 0.5s ease, transform 0.5s ease";
-    });
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = "1";
-          entry.target.style.transform = "translateY(0)";
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.15 });
-    revealTargets.forEach(el => observer.observe(el));
-  }
-
-  checkSession();
 });
+
+if (reserveForm) {
+    reserveForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById("modalError");
+        const successEl = document.getElementById("modalSuccess");
+        setMessage(errorEl, "");
+
+        const data = await postForm("reserve.php", new FormData(reserveForm));
+
+        if (data.ok) {
+            reserveForm.hidden = true;
+            if (successEl) successEl.hidden = false;
+        } else if (data.requiresLogin) {
+            closeModal(reserveModal);
+            const msg = document.getElementById("loginModalMsg");
+            const carField = document.getElementById("reserveCarField");
+            pendingReserveCar = carField ? carField.value : null;
+            if (msg) msg.textContent = "Please log in to reserve a vehicle.";
+            openAuthModal("login");
+        } else {
+            setMessage(errorEl, data.error || "Could not save your reservation.");
+        }
+    });
+}
+
+// ===================== Contact form =====================
+if (contactForm) {
+    contactForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById("contactError");
+        const successEl = document.getElementById("contactSuccess");
+        setMessage(errorEl, "");
+        setMessage(successEl, "");
+
+        const data = await postForm("contact_function.php", new FormData(contactForm));
+
+        if (data.ok) {
+            setMessage(successEl, data.message || "Thanks! We'll be in touch soon.", false);
+            contactForm.reset();
+        } else {
+            setMessage(errorEl, data.error || "Could not send your message.", false);
+        }
+    });
+}
+
+// ===================== Newsletter form =====================
+if (newsletterForm) {
+    newsletterForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const msgEl = document.getElementById("newsletterMsg");
+        setMessage(msgEl, "");
+
+        const data = await postForm("subscribe.php", new FormData(newsletterForm));
+
+        setMessage(msgEl, data.message || data.error || "", false);
+        if (data.ok) newsletterForm.reset();
+    });
+}
+
+// ===================== Mobile nav toggle =====================
+if (navToggle && siteHeader) {
+    navToggle.addEventListener("click", () => {
+        const isOpen = siteHeader.classList.toggle("nav-open");
+        navToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+
+    if (mainNav) {
+        mainNav.querySelectorAll("a").forEach((link) => {
+            link.addEventListener("click", () => {
+                siteHeader.classList.remove("nav-open");
+                navToggle.setAttribute("aria-expanded", "false");
+            });
+        });
+    }
+}
+
+// ===================== Back to top =====================
+if (backToTop) {
+    window.addEventListener("scroll", () => {
+        backToTop.classList.toggle("visible", window.scrollY > 400);
+    });
+
+    backToTop.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+}
+
+// ===================== My Reservations page =====================
+const reservationsLoginTrigger = document.getElementById("reservationsLoginTrigger");
+if (reservationsLoginTrigger) {
+    reservationsLoginTrigger.addEventListener("click", () => openAuthModal("login"));
+}
+
+document.querySelectorAll(".cancel-reservation-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        const confirmed = window.confirm("Cancel this reservation? This can't be undone.");
+        if (!confirmed) return;
+
+        btn.disabled = true;
+        btn.textContent = "Cancelling…";
+
+        const formData = new FormData();
+        formData.append("reservation_id", id);
+        const data = await postForm("cancel_reservation.php", formData);
+
+        if (data.ok) {
+            const card = btn.closest(".reservation-card");
+            if (card) {
+                card.classList.add("cancelled");
+                const badge = card.querySelector(".reservation-badge");
+                if (badge) {
+                    badge.textContent = "Cancelled";
+                    badge.classList.remove("status-confirmed");
+                    badge.classList.add("status-cancelled");
+                }
+            }
+            btn.remove();
+        } else if (data.requiresLogin) {
+            openAuthModal("login");
+            btn.disabled = false;
+            btn.textContent = "Cancel Reservation";
+        } else {
+            alert(data.error || "Could not cancel your reservation. Please try again.");
+            btn.disabled = false;
+            btn.textContent = "Cancel Reservation";
+        }
+    });
+});
+
+// ===================== Init =====================
+checkSession();
